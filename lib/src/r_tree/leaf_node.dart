@@ -18,7 +18,6 @@ import 'dart:math';
 
 import 'package:r_tree/src/r_tree/node.dart';
 import 'package:r_tree/src/r_tree/r_tree_datum.dart';
-import 'package:r_tree/src/r_tree/rectangle_helper.dart';
 
 /// A [Node] that is a leaf node of the tree.  These are created automatically
 /// when inserting/removing items from the tree.
@@ -45,12 +44,21 @@ class LeafNode<E> extends Node<E> {
   }
 
   @override
-  List<RTreeDatum<E>> search(Rectangle searchRect, bool Function(E item)? shouldInclude) {
+  List<RTreeDatum<E>> getAllItems() => _items;
+
+  @override
+  List<RTreeDatum<E>> search(
+    Rectangle searchRect,
+    bool Function(E item)? shouldInclude,
+  ) {
+    // If the search rectangle contains this node's rectangle, then all items in
+    // this node should be returned
+    if (searchRect.containsRectangle(rect)) return getAllItems();
+
     return _items
-        .where((item) => item.rect.overlaps(searchRect) && (shouldInclude == null || shouldInclude(item.value)))
+        .where((item) => item.rect.intersects(searchRect) && (shouldInclude == null || shouldInclude(item.value)))
         .toList();
   }
-
   @override
   Node<E>? insert(RTreeDatum<E> item) {
     addChild(item);
@@ -58,8 +66,8 @@ class LeafNode<E> extends Node<E> {
   }
 
   @override
-  void remove(RTreeDatum<E> item) {
-    removeChild(item);
+  bool remove(RTreeDatum<E> item) {
+    return removeChild(item);
   }
 
   @override

@@ -42,6 +42,8 @@ abstract class Node<E> implements RTreeContributor {
 
   Node(this.branchFactor);
 
+  List<RTreeDatum<E>> getAllItems();
+
   /// Returns an iterable of all items within [searchRect]
   List<RTreeDatum<E>> search(Rectangle searchRect, bool Function(E item)? shouldInclude);
 
@@ -49,7 +51,7 @@ abstract class Node<E> implements RTreeContributor {
   Node<E>? insert(RTreeDatum<E> item);
 
   /// Removes [item] from this node
-  void remove(RTreeDatum<E> item);
+  bool remove(RTreeDatum<E> item);
 
   /// Remove all children from this node
   void clearChildren() {
@@ -72,9 +74,13 @@ abstract class Node<E> implements RTreeContributor {
   }
 
   /// Removes [child] from this node
-  void removeChild(covariant RTreeContributor child) {
-    children.remove(child);
-    updateBoundingRect();
+  bool removeChild(covariant RTreeContributor child) {
+    if (children.remove(child)) {
+      updateBoundingRect();
+      return true;
+    }
+
+    return false;
   }
 
   /// Calculates the cost (increase to _minimumBoundingRect's area)

@@ -25,4 +25,18 @@ class RTreeDatum<E> implements RTreeContributor {
   final E value;
 
   RTreeDatum(this.rect, this.value);
+
+  @override
+  String toString() => 'RTreeDatum(rect: $rect, value: $value)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RTreeDatum &&
+          runtimeType == other.runtimeType &&
+          rect == other.rect &&
+          value == other.value;
+
+  @override
+  int get hashCode => rect.hashCode ^ value.hashCode;
 }

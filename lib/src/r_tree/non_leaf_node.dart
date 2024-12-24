@@ -18,7 +18,6 @@ import 'dart:math';
 
 import 'package:r_tree/src/r_tree/node.dart';
 import 'package:r_tree/src/r_tree/r_tree_datum.dart';
-import 'package:r_tree/src/r_tree/rectangle_helper.dart';
 
 /// A [Node] that is not a leaf end of the tree. These are created automatically
 /// when inserting/removing items from the tree.
@@ -43,11 +42,29 @@ class NonLeafNode<E> extends Node<E> {
   }
 
   @override
-  List<RTreeDatum<E>> search(Rectangle searchRect, bool Function(E item)? shouldInclude) {
+  List<RTreeDatum<E>> getAllItems() {
+    final allItems = <RTreeDatum<E>>[];
+
+    for (final childNode in _childNodes) {
+      allItems.addAll(childNode.getAllItems());
+    }
+
+    return allItems;
+  }
+
+  @override
+  List<RTreeDatum<E>> search(
+    Rectangle searchRect,
+    bool Function(E item)? shouldInclude,
+  ) {
+    // If the search rectangle contains this node's rectangle, then all items in
+    // this node should be returned
+    if (searchRect.containsRectangle(rect)) return getAllItems();
+
     final overlappingLeafs = <RTreeDatum<E>>[];
 
     for (final childNode in _childNodes) {
-      if (childNode.rect.overlaps(searchRect)) {
+      if (childNode.rect.intersects(searchRect)) {
         overlappingLeafs.addAll(childNode.search(searchRect, shouldInclude));
       }
     }
@@ -70,24 +87,33 @@ class NonLeafNode<E> extends Node<E> {
   }
 
   @override
-  void remove(RTreeDatum<E> item) {
+  bool remove(RTreeDatum<E> item) {
     final childrenToRemove = <Node<E>>[];
 
-    for (final childNode in _childNodes) {
-      if (childNode.rect.overlaps(item.rect)) {
-        childNode.remove(item);
+    var atLeastOneItemRemoved = false;
 
-        if (childNode.size == 0) {
-          childrenToRemove.add(childNode);
+    for (final childNode in _childNodes) {
+      if (childNode.rect.intersects(item.rect)) {
+        if (childNode.remove(item)) {
+          atLeastOneItemRemoved = true;
+
+          if (childNode.size == 0) {
+            childrenToRemove.add(childNode);
+          }
         }
       }
     }
 
-    for (final child in childrenToRemove) {
-      removeChild(child);
+    if (atLeastOneItemRemoved) {
+      for (final child in childrenToRemove) {
+        removeChild(child);
+      }
+
+      _updateHeightAndBounds();
+      return true;
     }
 
-    _updateHeightAndBounds();
+    return false;
   }
 
   @override
@@ -97,11 +123,16 @@ class NonLeafNode<E> extends Node<E> {
   }
 
   @override
-  void removeChild(Node<E> child) {
-    super.removeChild(child);
-    child.parent = null;
+  bool removeChild(Node<E> child) {
+    if (super.removeChild(child)) {
+      child.parent = null;
 
-    _updateHeightAndBounds();
+      _updateHeightAndBounds();
+
+      return true;
+    }
+
+    return false;
   }
 
   @override

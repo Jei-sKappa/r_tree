@@ -48,12 +48,14 @@ class RTree<E> {
   }
 
   /// Removes [item] from the rtree
-  void remove(RTreeDatum<E> item) {
-    _root.remove(item);
+  bool remove(RTreeDatum<E> item) {
+    final removed = _root.remove(item);
 
-    if (_root.children.isEmpty) {
+    if (removed && _root.children.isEmpty) {
       _resetRoot();
     }
+
+    return removed;
   }
 
   /// Adds [item] to the rtree
@@ -65,20 +67,18 @@ class RTree<E> {
     }
   }
 
+  List<RTreeDatum<E>> getAllItems() => _root.getAllItems();
+
   /// Returns all items whose rectangles overlap [searchRect]
   /// If [shouldInclude] is specified, each item will be passed to the
   /// method and excluded if [shouldInclude] evaluates to false.
   ///
   /// Note: Rectangles that share only a border are not considered to overlap
-  List<RTreeDatum<E>> search(Rectangle searchRect, {bool Function(E item)? shouldInclude}) {
-    shouldInclude ??= (_) => true;
-
-    if (_root is LeafNode<E>) {
-      return _root.search(searchRect, shouldInclude);
-    }
-
-    return _root.search(searchRect, shouldInclude);
-  }
+  List<RTreeDatum<E>> search(
+    Rectangle searchRect, {
+    bool Function(E item)? shouldInclude,
+  }) =>
+      _root.search(searchRect, shouldInclude);
 
   /// Bulk adds all [items] to the rtree. This implementation draws heavily from
   /// https://github.com/mourner/rbush and https://github.com/Zverik/dart_rbush.
